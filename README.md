@@ -43,15 +43,41 @@ Semua lewat file `.env`:
 | `GEMINI_MODEL`  | `gemini-3.5-flash`   | Nama model Gemini                |
 | `AI_NAME`       | `PrasMenjawab`       | Nama/persona AI saat menjawab    |
 
-## Deploy ke Render (gratis)
+## Deploy ke PythonAnywhere (gratis, tanpa kartu)
 
-1. Buat repo di **GitHub** lalu push kode ini (jangan commit `.env` — sudah ada di `.gitignore`).
-2. Daftar di **https://render.com** (login via GitHub).
-3. Klik **New → Blueprint**, pilih repo kamu. Render akan membaca `render.yaml` dan membuatkan web service otomatis.
-4. Saat diminta, isi **Environment Variable** `GEMINI_API_KEY` dengan key kamu dari AI Studio.
-5. Tunggu beberapa menit hingga status **Live**, lalu buka URL yang diberikan.
+**Siapkan di laptop (sekali saja):** push kode ke GitHub:
 
-Catatan: paket gratis Render akan "tidur" (sleep) jika tidak dipakai beberapa menit; halaman pertama setelah tidur akan agak lambat (±30 detik).
+```bash
+git add -A
+git commit -m "update"
+git push -u origin main
+```
+
+**Di PythonAnywhere (browser):**
+
+1. Daftar di https://www.pythonanywhere.com (paket Free "Beginner") — pilih username huruf kecil.
+2. Buka tab **Consoles → Bash**, lalu ketik:
+   ```
+   git clone https://github.com/EWaa16/PrasMenjawab.git
+   cd PrasMenjawab
+   mkvirtualenv --python=python3.12 prasmenjawab
+   pip install -r requirements.txt
+   ```
+3. Buat file `.env` lewat tab **Files** (di folder `/home/<username>/PrasMenjawab/`) berisi:
+   ```
+   GEMINI_API_KEY=isi_key_kamu
+   GEMINI_MODEL=gemini-3.5-flash
+   AI_NAME=PrasMenjawab
+   ```
+4. Tab **Web → Add a new web app → Manual configuration → Python 3.12**.
+5. Di halaman pengaturan web app, isi:
+   - **Source code:** `/home/<username>/PrasMenjawab`
+   - **Working directory:** `/home/<username>/PrasMenjawab`
+   - **Virtualenv:** `prasmenjawab`
+   - **WSGI configuration file:** arahkan ke `/home/<username>/PrasMenjawab/wsgi.py`
+6. Klik **Reload**, lalu buka `http://<username>.pythonanywhere.com`.
+
+Catatan: di PythonAnywhere, streaming (SSE) mungkin tidak mulus — matikan toggle **Streaming** di halaman chat; mode non-streaming dijamin jalan. Paket Free punya batas traffic harian.
 
 ## Langkah berikutnya (roadmap)
 

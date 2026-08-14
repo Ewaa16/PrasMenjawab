@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -11,6 +12,8 @@ from google.genai import types
 from pydantic import BaseModel
 
 load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
@@ -29,7 +32,7 @@ if not API_KEY:
 client = genai.Client(api_key=API_KEY)
 
 app = FastAPI(title=f"{AI_NAME} - Chat Assistant")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 SESSIONS: dict[str, list[dict]] = {}
 
@@ -65,7 +68,7 @@ def remember(session_id, role, text):
 
 @app.get("/")
 def index():
-    return FileResponse("static/index.html")
+    return FileResponse(BASE_DIR / "static" / "index.html")
 
 
 @app.post("/api/chat")
