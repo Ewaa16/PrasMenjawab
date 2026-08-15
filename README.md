@@ -43,14 +43,13 @@ Semua lewat file `.env`:
 | `GEMINI_MODEL`  | `gemini-3.5-flash`   | Nama model Gemini                |
 | `AI_NAME`       | `PrasMenjawab`       | Nama/persona AI saat menjawab    |
 
-## Deploy ke Hugging Face Spaces (gratis, tanpa kartu)
+## Deploy ke Back4app Containers (gratis, tanpa kartu)
 
-Metode: **Docker Space** — HF membangun image dari `Dockerfile`, lalu menjalankan app di
-`https://<USERNAME>-prasmenjawab.hf.space`. Outbound internet bebas, jadi bisa memanggil Gemini API.
+Metode: Back4app membangun image dari `Dockerfile`, lalu menjalankan aplikasi di URL
+`https://<nama-app>.b4a.run`. Outbound internet bebas, jadi bisa memanggil Gemini API.
 
-> **Kenapa bukan PythonAnywhere free?** Paket Free PythonAnywhere memblokir akses internet keluar
-> dari web app (`[Errno 101] Network is unreachable`), sehingga chatbot yang memanggil Gemini tidak
-> bisa jalan di sana.
+> **Kenapa bukan Hugging Face Spaces?** Sejak Juli 2026, akun free baru di HF tidak bisa lagi
+> membuat Docker Space (wajib langganan PRO). Back4app Containers masih gratis tanpa kartu.
 
 **Siapkan di laptop (sekali saja):** push kode ke GitHub:
 
@@ -60,33 +59,22 @@ git commit -m "update"
 git push -u origin main
 ```
 
-**Di Hugging Face (browser):**
+**Di Back4app (browser):**
 
-1. Daftar di https://huggingface.co/join (email + password, gratis, tanpa kartu).
-2. Buat Space: klik avatar → **+ New** → **Space**:
-   - Nama: `prasmenjawab`
-   - SDK: **Docker**
-   - Hardware: **CPU basic** (gratis)
-   - Visibility: **Public**
-   - Klik **Create Space**.
-3. Isi **Variables and secrets** di tab **Settings** Space:
+1. Daftar di https://www.back4app.com (email + verifikasi, gratis, tanpa kartu).
+2. Dari dashboard pilih **Containers** → **Create New App** (Web Deployment).
+3. Pilih **Connect GitHub** → Install aplikasi Back4app ke akun GitHub kamu →
+   pilih repositori `PrasMenjawab` dan branch `main`.
+4. Isi **Environment Variables** (nama harus sama persis seperti di `.env`):
    - `GEMINI_API_KEY` = key kamu dari https://aistudio.google.com/apikey
    - `GEMINI_MODEL` = `gemini-3.5-flash`
    - `AI_NAME` = `PrasMenjawab`
-4. Buat Access Token: klik avatar → **Settings** → **Access Tokens** → **Create new token** → scope **Write**.
-5. Push kode ke repo Space (di terminal laptop):
-   ```bash
-   git remote add hf https://huggingface.co/spaces/<USERNAME>/prasmenjawab
-   git push hf main
-   ```
-   Saat diminta username: tulis USERNAME HF kamu; saat diminta password: tempel Access Token tadi.
-   Kalau repo Space sudah punya commit awal, pakai `git push -f hf main`.
-6. Build berjalan otomatis (lihat tab **Builder**). Selesai, buka:
-   `https://<USERNAME>-prasmenjawab.hf.space`
-7. Saat kode berubah: `git push hf main` lagi — Space rebuild otomatis.
+5. Pastikan port container = **8000** (sudah diatur di `Dockerfile`). Klik **Create / Deploy**.
+6. Tunggu build selesai, lalu buka URL yang diberikan (bentuknya `https://prasmenjawab-xxxx.b4a.run`).
+7. Saat kode berubah: cukup `git push` ke GitHub — Back4app auto-deploy.
 
-> **Catatan:** HF Spaces memakai port `7860` — sudah diatur di `Dockerfile`.
-> Space free ikut "tidur" saat lama tidak dipakai; kunjungan berikutnya butuh beberapa detik (cold start).
+> **Catatan:** Back4app memakai port `8000` — sudah diatur di `Dockerfile`.
+> Env variable (`GEMINI_API_KEY`) disimpan terenkripsi di dashboard, tidak ikut masuk ke Git.
 
 ## Langkah berikutnya (roadmap)
 
