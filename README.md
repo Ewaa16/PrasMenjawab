@@ -43,13 +43,14 @@ Semua lewat file `.env`:
 | `GEMINI_MODEL`  | `gemini-3.5-flash`   | Nama model Gemini                |
 | `AI_NAME`       | `PrasMenjawab`       | Nama/persona AI saat menjawab    |
 
-## Deploy ke Back4app Containers (gratis, tanpa kartu)
+## Deploy ke Vercel (gratis, tanpa kartu)
 
-Metode: Back4app membangun image dari `Dockerfile`, lalu menjalankan aplikasi di URL
-`https://<nama-app>.b4a.run`. Outbound internet bebas, jadi bisa memanggil Gemini API.
+Vercel kini mendukung FastAPI (ASGI) secara native — aplikasi terdeteksi otomatis dari `main.py`,
+URL `https://<nama-proyek>.vercel.app`, HTTPS otomatis, dan outbound internet bebas (bisa memanggil Gemini).
 
-> **Kenapa bukan Hugging Face Spaces?** Sejak Juli 2026, akun free baru di HF tidak bisa lagi
-> membuat Docker Space (wajib langganan PRO). Back4app Containers masih gratis tanpa kartu.
+> **Kenapa bukan PythonAnywhere / Hugging Face / Back4app?** PAW free memblokir akses internet keluar
+> dari web app; HF Spaces sejak Juli 2026 mewajibkan langganan PRO untuk akun free baru; integrasi
+> GitHub Back4app rawan gagal menampilkan branch.
 
 **Siapkan di laptop (sekali saja):** push kode ke GitHub:
 
@@ -59,22 +60,20 @@ git commit -m "update"
 git push -u origin main
 ```
 
-**Di Back4app (browser):**
+**Di Vercel (browser):**
 
-1. Daftar di https://www.back4app.com (email + verifikasi, gratis, tanpa kartu).
-2. Dari dashboard pilih **Containers** → **Create New App** (Web Deployment).
-3. Pilih **Connect GitHub** → Install aplikasi Back4app ke akun GitHub kamu →
-   pilih repositori `PrasMenjawab` dan branch `main`.
-4. Isi **Environment Variables** (nama harus sama persis seperti di `.env`):
+1. Daftar di https://vercel.com → **Continue with GitHub** (pakai akun GitHub kamu).
+2. Klik **Add New…** → **Project** → pilih repositori `PrasMenjawab`.
+   (Kalau tidak muncul, klik **Adjust GitHub App Permissions** dan izinkan akses ke repo itu.)
+3. Vercel otomatis mendeteksi FastAPI — jangan ubah pengaturan build.
+4. Isi **Environment Variables** sebelum deploy:
    - `GEMINI_API_KEY` = key kamu dari https://aistudio.google.com/apikey
    - `GEMINI_MODEL` = `gemini-3.5-flash`
    - `AI_NAME` = `PrasMenjawab`
-5. Pastikan port container = **8000** (sudah diatur di `Dockerfile`). Klik **Create / Deploy**.
-6. Tunggu build selesai, lalu buka URL yang diberikan (bentuknya `https://prasmenjawab-xxxx.b4a.run`).
-7. Saat kode berubah: cukup `git push` ke GitHub — Back4app auto-deploy.
+5. Klik **Deploy** → buka URL yang dihasilkan (`https://pras-menjawab.vercel.app`).
 
-> **Catatan:** Back4app memakai port `8000` — sudah diatur di `Dockerfile`.
-> Env variable (`GEMINI_API_KEY`) disimpan terenkripsi di dashboard, tidak ikut masuk ke Git.
+> **Catatan:** `.env` tidak ikut ter-commit (aman). Env variable diisi lewat dashboard Vercel.
+> Karena app berjalan sebagai serverless function, memori sesi chat hanya bertahan selama instance panas.
 
 ## Langkah berikutnya (roadmap)
 
