@@ -43,10 +43,14 @@ Semua lewat file `.env`:
 | `GEMINI_MODEL`  | `gemini-3.5-flash`   | Nama model Gemini                |
 | `AI_NAME`       | `PrasMenjawab`       | Nama/persona AI saat menjawab    |
 
-## Deploy ke PythonAnywhere (gratis, tanpa kartu)
+## Deploy ke Hugging Face Spaces (gratis, tanpa kartu)
 
-Metode yang dipakai: **ASGI beta** PythonAnywhere — aplikasi FastAPI dijalankan langsung oleh
-`uvicorn` (tanpa jembatan WSGI/a2wsgi), jadi streaming & file statis jalan normal.
+Metode: **Docker Space** — HF membangun image dari `Dockerfile`, lalu menjalankan app di
+`https://<USERNAME>-prasmenjawab.hf.space`. Outbound internet bebas, jadi bisa memanggil Gemini API.
+
+> **Kenapa bukan PythonAnywhere free?** Paket Free PythonAnywhere memblokir akses internet keluar
+> dari web app (`[Errno 101] Network is unreachable`), sehingga chatbot yang memanggil Gemini tidak
+> bisa jalan di sana.
 
 **Siapkan di laptop (sekali saja):** push kode ke GitHub:
 
@@ -56,40 +60,33 @@ git commit -m "update"
 git push -u origin main
 ```
 
-**Di PythonAnywhere (browser + console):**
+**Di Hugging Face (browser):**
 
-1. Daftar di https://www.pythonanywhere.com (paket Free).
-2. Buat API token: buka https://www.pythonanywhere.com/account/api_token/ → klik tombol membuat token.
-3. Buka tab **Consoles → Bash** (console baru), lalu:
+1. Daftar di https://huggingface.co/join (email + password, gratis, tanpa kartu).
+2. Buat Space: klik avatar → **+ New** → **Space**:
+   - Nama: `prasmenjawab`
+   - SDK: **Docker**
+   - Hardware: **CPU basic** (gratis)
+   - Visibility: **Public**
+   - Klik **Create Space**.
+3. Isi **Variables and secrets** di tab **Settings** Space:
+   - `GEMINI_API_KEY` = key kamu dari https://aistudio.google.com/apikey
+   - `GEMINI_MODEL` = `gemini-3.5-flash`
+   - `AI_NAME` = `PrasMenjawab`
+4. Buat Access Token: klik avatar → **Settings** → **Access Tokens** → **Create new token** → scope **Write**.
+5. Push kode ke repo Space (di terminal laptop):
+   ```bash
+   git remote add hf https://huggingface.co/spaces/<USERNAME>/prasmenjawab
+   git push hf main
    ```
-   git clone https://github.com/Ewaa16/PrasMenjawab.git
-   cd PrasMenjawab
-   mkvirtualenv --python=python3.12 prasmenjawab
-   pip install -r requirements.txt
-   ```
-4. Buat file `.env` di folder `/home/Ewaa16/PrasMenjawab/` (tab **Files**) berisi:
-   ```
-   GEMINI_API_KEY=isi_key_kamu
-   GEMINI_MODEL=gemini-3.5-flash
-   AI_NAME=PrasMenjawab
-   ```
-5. Install CLI `pa` (di console):
-   ```
-   pip install --upgrade pythonanywhere
-   ```
-6. **Hapus web app WSGI lama** di tab **Web** (tombol Delete paling bawah) — domain yang sama dipakai website ASGI.
-7. Buat website ASGI (di console):
-   ```
-   pa website create --domain Ewaa16.pythonanywhere.com --command '/home/Ewaa16/.virtualenvs/prasmenjawab/bin/uvicorn --app-dir /home/Ewaa16/PrasMenjawab --uds ${DOMAIN_SOCKET} main:app'
-   ```
-8. Saat kode berubah, pull + reload:
-   ```
-   cd ~/PrasMenjawab && git pull
-   pa website reload --domain Ewaa16.pythonanywhere.com
-   ```
-9. Buka `http://Ewaa16.pythonanywhere.com`.
+   Saat diminta username: tulis USERNAME HF kamu; saat diminta password: tempel Access Token tadi.
+   Kalau repo Space sudah punya commit awal, pakai `git push -f hf main`.
+6. Build berjalan otomatis (lihat tab **Builder**). Selesai, buka:
+   `https://<USERNAME>-prasmenjawab.hf.space`
+7. Saat kode berubah: `git push hf main` lagi — Space rebuild otomatis.
 
-Log ada di `/var/log/Ewaa16.pythonanywhere.com.{access,error,server}.log`. Paket Free punya batas traffic harian.
+> **Catatan:** HF Spaces memakai port `7860` — sudah diatur di `Dockerfile`.
+> Space free ikut "tidur" saat lama tidak dipakai; kunjungan berikutnya butuh beberapa detik (cold start).
 
 ## Langkah berikutnya (roadmap)
 
