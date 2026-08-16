@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import hashlib
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -35,6 +36,28 @@ app = FastAPI(title=f"{AI_NAME} - Chat Assistant")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 SESSIONS: dict[str, list[dict]] = {}
+
+SITE_FILES = [
+    BASE_DIR / "static" / "index.html",
+    BASE_DIR / "static" / "logo.jpg",
+    BASE_DIR / "static" / "bg.jpg",
+]
+_ver_key = None
+_ver_value = None
+
+
+@app.get("/api/version")
+def site_version():
+    global _ver_key, _ver_value
+    key = tuple(f.stat().st_mtime_ns for f in SITE_FILES)
+    if key != _ver_key:
+        h = hashlib.sha256()
+        for f in SITE_FILES:
+            with f.open("rb") as fh:
+                h.update(fh.read())
+        _ver_key = key
+        _ver_value = h.hexdigest()
+    return {"version": _ver_value}
 
 
 class ChatRequest(BaseModel):
