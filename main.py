@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 API_KEY = os.getenv("GEMINI_API_KEY")
-MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 AI_NAME = os.getenv("AI_NAME", "PrasMenjawab")
 MAX_HISTORY = 20
 SYSTEM_INSTRUCTION = (

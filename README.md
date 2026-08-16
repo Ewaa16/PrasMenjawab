@@ -40,7 +40,7 @@ Semua lewat file `.env`:
 | Variable        | Default              | Keterangan                       |
 |-----------------|----------------------|----------------------------------|
 | `GEMINI_API_KEY`| (wajib diisi)        | API key dari Google AI Studio    |
-| `GEMINI_MODEL`  | `gemini-3.5-flash`   | Nama model Gemini                |
+| `GEMINI_MODEL`  | `gemini-3.5-flash-lite` | Nama model Gemini (lite = paling cepat) |
 | `AI_NAME`       | `PrasMenjawab`       | Nama/persona AI saat menjawab    |
 
 ## Deploy ke Vercel (gratis, tanpa kartu)
@@ -68,7 +68,7 @@ git push -u origin main
 3. Vercel otomatis mendeteksi FastAPI — jangan ubah pengaturan build.
 4. Isi **Environment Variables** sebelum deploy:
    - `GEMINI_API_KEY` = key kamu dari https://aistudio.google.com/apikey
-   - `GEMINI_MODEL` = `gemini-3.5-flash`
+   - `GEMINI_MODEL` = `gemini-3.5-flash-lite`
    - `AI_NAME` = `PrasMenjawab`
 5. Klik **Deploy** → buka URL yang dihasilkan (`https://pras-menjawab.vercel.app`).
 

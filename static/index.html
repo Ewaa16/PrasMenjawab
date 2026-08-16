@@ -755,12 +755,20 @@
             const botEl = addMsg("", "bot cursor", true);
             let full = "";
             let ok = false;
-            const update = (delta) => {
-                full += delta;
+            let framePending = false;
+            const applyFrame = () => {
+                framePending = false;
                 botEl.innerHTML = renderMarkdown(full);
                 decorateCodeBlocks(botEl);
                 botEl.classList.add("cursor");
                 chatEl.scrollTop = chatEl.scrollHeight;
+            };
+            const update = (delta) => {
+                full += delta;
+                if (!framePending) {
+                    framePending = true;
+                    requestAnimationFrame(applyFrame);
+                }
             };
 
             sendBtn.disabled = true;
