@@ -18,6 +18,7 @@ load_dotenv(BASE_DIR / ".env")
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+FALLBACK_MODEL = "gemini-3.5-flash-lite"
 AI_NAME = os.getenv("AI_NAME", "PrasMenjawab")
 MAX_HISTORY = 20
 SYSTEM_INSTRUCTION = (
@@ -57,7 +58,7 @@ def site_version():
                 h.update(fh.read())
         _ver_key = key
         _ver_value = h.hexdigest()
-    return {"version": _ver_value}
+    return {"version": _ver_value, "model": MODEL, "fallback": FALLBACK_MODEL}
 
 
 class ChatRequest(BaseModel):
@@ -73,6 +74,10 @@ def get_session(req: ChatRequest):
         SESSIONS[session_id] = []
     history = SESSIONS[session_id][-MAX_HISTORY:]
     return session_id, history
+
+
+def is_quota_error(exc) -> bool:
+    return "429" in str(exc) or "RESOURCE_EXHAUSTED" in str(exc)
 
 
 def build_contents(history, prompt):
@@ -102,17 +107,30 @@ def chat(req: ChatRequest):
         history = req.history[-MAX_HISTORY * 2:]
     else:
         session_id, history = get_session(req)
+    contents = build_contents(history, req.prompt)
     try:
         response = client.models.generate_content(
             model=MODEL,
-            contents=build_contents(history, req.prompt),
+            contents=contents,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION,
             ),
         )
-        text = response.text
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        if is_quota_error(exc) and MODEL != FALLBACK_MODEL:
+            try:
+                response = client.models.generate_content(
+                    model=FALLBACK_MODEL,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_INSTRUCTION,
+                    ),
+                )
+            except Exception as exc2:
+                raise HTTPException(status_code=500, detail=str(exc2))
+        else:
+            raise HTTPException(status_code=500, detail=str(exc))
+    text = response.text
 
     if req.history is None:
         remember(session_id, "user", req.prompt)
@@ -131,9 +149,12 @@ def chat_stream(req: ChatRequest):
 
     def generate():
         full = ""
-        try:
+        used_fallback = False
+
+        def run(model):
+            nonlocal full
             stream = client.models.generate_content_stream(
-                model=MODEL,
+                model=model,
                 contents=contents,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_INSTRUCTION,
@@ -143,15 +164,27 @@ def chat_stream(req: ChatRequest):
                 if chunk.text:
                     full += chunk.text
                     yield f"data: {json.dumps({'delta': chunk.text})}\n\n"
+
+        try:
+            yield from run(MODEL)
         except Exception as exc:
-            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
-            yield "data: [DONE]\n\n"
-            return
+            if is_quota_error(exc) and MODEL != FALLBACK_MODEL:
+                used_fallback = True
+                try:
+                    yield from run(FALLBACK_MODEL)
+                except Exception as exc2:
+                    yield f"data: {json.dumps({'error': str(exc2)})}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
+            else:
+                yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+                yield "data: [DONE]\n\n"
+                return
 
         if req.history is None:
             remember(session_id, "user", req.prompt)
             remember(session_id, "model", full)
-        yield f"data: {json.dumps({'session_id': session_id})}\n\n"
+        yield f"data: {json.dumps({'session_id': session_id, 'model': FALLBACK_MODEL if used_fallback else MODEL})}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(
