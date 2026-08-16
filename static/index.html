@@ -142,7 +142,7 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            background: #070b14;
+            background: radial-gradient(1200px 500px at 50% -10%, rgba(99,102,241,.12), transparent 60%), #070b14;
             opacity: 0;
             pointer-events: none;
             transition: opacity .35s ease;
@@ -327,21 +327,39 @@
             gap: 18px;
             scroll-behavior: smooth;
         }
-        .msg-row { display: flex; gap: 12px; max-width: 820px; width: 100%; margin: 0 auto; }
+        #chat::-webkit-scrollbar, .sidebar-list::-webkit-scrollbar { width: 8px; }
+        #chat::-webkit-scrollbar-thumb, .sidebar-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 8px; }
+        #chat::-webkit-scrollbar-thumb:hover, .sidebar-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.22); }
+        #chat::-webkit-scrollbar-track, .sidebar-list::-webkit-scrollbar-track { background: transparent; }
+
+        @keyframes msgIn {
+            from { opacity: 0; transform: translateY(10px) scale(.99); }
+            to { opacity: 1; transform: none; }
+        }
+        .msg-row {
+            display: flex;
+            gap: 12px;
+            max-width: 820px;
+            width: 100%;
+            margin: 0 auto;
+            animation: msgIn .32s ease both;
+        }
         .msg-row.user { flex-direction: row-reverse; margin-left: auto; justify-content: flex-end; }
         .msg-avatar {
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             object-fit: cover;
-            flex: 0 0 34px;
+            flex: 0 0 36px;
             margin-top: 2px;
+            box-shadow: 0 0 0 2px rgba(129,140,248,.30), 0 4px 16px rgba(99,102,241,.35);
         }
         .msg-avatar.user {
-            background: linear-gradient(135deg, #6366f1, #22d3ee);
+            background: linear-gradient(135deg, #6366f1, #a855f7);
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 0 0 2px rgba(168,85,247,.30), 0 4px 16px rgba(99,102,241,.30);
         }
         .msg-body { display: flex; flex-direction: column; min-width: 0; }
         .msg-row.user .msg-body { align-items: flex-end; }
@@ -361,13 +379,15 @@
             max-width: 100%;
         }
         .msg-row.bot .bubble {
-            background: rgba(23, 32, 55, .85);
-            border: 1px solid rgba(255,255,255,.07);
+            background: linear-gradient(180deg, rgba(30, 41, 66, .92), rgba(21, 29, 50, .9));
+            border: 1px solid rgba(255,255,255,.08);
             border-top-left-radius: 4px;
+            box-shadow: 0 6px 20px rgba(0,0,0,.28);
         }
         .msg-row.user .bubble {
-            background: linear-gradient(135deg, #4f46e5, #0891b2);
+            background: linear-gradient(135deg, #6366f1, #a855f7);
             border-top-right-radius: 4px;
+            box-shadow: 0 6px 20px rgba(99,102,241,.35);
         }
         .msg-row.error .bubble {
             background: rgba(127, 29, 29, .55);
@@ -393,14 +413,39 @@
             font-size: 13px;
         }
         .bubble pre {
+            position: relative;
             background: #0b1120;
             border: 1px solid rgba(255,255,255,.09);
             border-radius: 10px;
-            padding: 12px 14px;
+            padding: 42px 14px 12px;
             overflow-x: auto;
             margin: 8px 0;
         }
         .bubble pre code { background: transparent; padding: 0; font-size: 13px; display: block; white-space: pre; }
+        .code-bar {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 10px 7px 14px;
+            background: rgba(255,255,255,.05);
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            border-radius: 10px 10px 0 0;
+            font-size: 12px;
+            color: #8b96b0;
+        }
+        .copy-btn {
+            background: rgba(255,255,255,.08);
+            border: none;
+            color: #cdd6e8;
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 11.5px;
+            cursor: pointer;
+            transition: background .12s ease;
+        }
+        .copy-btn:hover { background: rgba(129,140,248,.3); }
         .bubble a { color: #7dd3fc; }
 
         .chat-input-row {
@@ -614,8 +659,12 @@
             meta.textContent = (role === "user" ? "Kamu" : "PrasMenjawab") + " · " + timeNow();
             const bubble = document.createElement("div");
             bubble.className = "bubble";
-            if (markdown) bubble.innerHTML = renderMarkdown(text);
-            else bubble.textContent = text;
+            if (markdown) {
+                bubble.innerHTML = renderMarkdown(text);
+                decorateCodeBlocks(bubble);
+            } else {
+                bubble.textContent = text;
+            }
             body.appendChild(meta);
             body.appendChild(bubble);
 
@@ -624,6 +673,30 @@
             chatEl.appendChild(row);
             chatEl.scrollTop = chatEl.scrollHeight;
             return bubble;
+        }
+
+        function decorateCodeBlocks(scope) {
+            scope.querySelectorAll("pre").forEach((pre) => {
+                if (pre.querySelector(".code-bar")) return;
+                const codeEl = pre.querySelector("code");
+                const text = codeEl ? codeEl.textContent : "";
+                const bar = document.createElement("div");
+                bar.className = "code-bar";
+                const label = document.createElement("span");
+                label.textContent = "Kode";
+                const btn = document.createElement("button");
+                btn.className = "copy-btn";
+                btn.textContent = "Salin";
+                btn.addEventListener("click", () => {
+                    navigator.clipboard.writeText(text).then(() => {
+                        btn.textContent = "Tersalin ✓";
+                        setTimeout(() => { btn.textContent = "Salin"; }, 1500);
+                    }).catch(() => {});
+                });
+                bar.appendChild(label);
+                bar.appendChild(btn);
+                pre.prepend(bar);
+            });
         }
 
         function parseSSE(body, onDelta) {
@@ -685,6 +758,7 @@
             const update = (delta) => {
                 full += delta;
                 botEl.innerHTML = renderMarkdown(full);
+                decorateCodeBlocks(botEl);
                 botEl.classList.add("cursor");
                 chatEl.scrollTop = chatEl.scrollHeight;
             };
