@@ -63,6 +63,7 @@ def site_version():
 class ChatRequest(BaseModel):
     prompt: str
     session_id: str | None = None
+    history: list[dict] | None = None
 
 
 def get_session(req: ChatRequest):
@@ -96,7 +97,11 @@ def index():
 
 @app.post("/api/chat")
 def chat(req: ChatRequest):
-    session_id, history = get_session(req)
+    if req.history is not None:
+        session_id = None
+        history = req.history[-MAX_HISTORY * 2:]
+    else:
+        session_id, history = get_session(req)
     try:
         response = client.models.generate_content(
             model=MODEL,
@@ -109,14 +114,19 @@ def chat(req: ChatRequest):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
-    remember(session_id, "user", req.prompt)
-    remember(session_id, "model", text)
+    if req.history is None:
+        remember(session_id, "user", req.prompt)
+        remember(session_id, "model", text)
     return {"response": text, "session_id": session_id}
 
 
 @app.post("/api/chat/stream")
 def chat_stream(req: ChatRequest):
-    session_id, history = get_session(req)
+    if req.history is not None:
+        session_id = None
+        history = req.history[-MAX_HISTORY * 2:]
+    else:
+        session_id, history = get_session(req)
     contents = build_contents(history, req.prompt)
 
     def generate():
@@ -138,8 +148,9 @@ def chat_stream(req: ChatRequest):
             yield "data: [DONE]\n\n"
             return
 
-        remember(session_id, "user", req.prompt)
-        remember(session_id, "model", full)
+        if req.history is None:
+            remember(session_id, "user", req.prompt)
+            remember(session_id, "model", full)
         yield f"data: {json.dumps({'session_id': session_id})}\n\n"
         yield "data: [DONE]\n\n"
 
