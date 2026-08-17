@@ -20,10 +20,13 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 API_KEY = os.getenv("GEMINI_API_KEY")
-MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 EMBEDDING_MODEL = "gemini-embedding-001"
 
-FALLBACK_MODEL = "gemini-3.5-flash-lite"
+FAST_MODEL = "gemini-3.5-flash-lite"
+SLOW_MODEL = "gemini-3.5-flash"
+REQUESTED_MODEL = os.getenv("GEMINI_MODEL", FAST_MODEL)
+MODEL = FAST_MODEL if REQUESTED_MODEL == SLOW_MODEL else REQUESTED_MODEL
+FALLBACK_MODEL = SLOW_MODEL if MODEL == FAST_MODEL else FAST_MODEL
 AI_NAME = os.getenv("AI_NAME", "PrasMenjawab")
 MAX_HISTORY = 20
 SYSTEM_INSTRUCTION = (
