@@ -1,11 +1,14 @@
 import os
+import io
+import re
 import json
 import uuid
 import hashlib
+import pypdf
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from google import genai
@@ -18,6 +21,8 @@ load_dotenv(BASE_DIR / ".env")
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+EMBEDDING_MODEL = "gemini-embedding-001"
+
 FALLBACK_MODEL = "gemini-3.5-flash-lite"
 AI_NAME = os.getenv("AI_NAME", "PrasMenjawab")
 MAX_HISTORY = 20
@@ -59,6 +64,66 @@ def site_version():
         _ver_key = key
         _ver_value = h.hexdigest()
     return {"version": _ver_value, "model": MODEL, "fallback": FALLBACK_MODEL}
+
+
+def chunk_text(text: str, max_chars: int = 800, overlap: int = 150) -> list[str]:
+    text = re.sub(r'\n{3,}', '\n\n', text).strip()
+    paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+    chunks = []
+    current = ""
+    for p in paragraphs:
+        if len(current) + len(p) + 2 <= max_chars:
+            current = (current + "\n\n" + p).strip() if current else p
+        else:
+            if current:
+                chunks.append(current)
+            if len(p) > max_chars:
+                for i in range(0, len(p), max_chars - overlap):
+                    piece = p[i:i + max_chars]
+                    if piece.strip():
+                        chunks.append(piece.strip())
+                current = ""
+            else:
+                current = p
+    if current:
+        chunks.append(current)
+    return chunks if chunks else [text] if text else []
+
+
+class EmbedRequest(BaseModel):
+    texts: list[str]
+
+
+@app.post("/api/embed")
+def embed_text(req: EmbedRequest):
+    try:
+        result = client.models.embed_content(
+            model=EMBEDDING_MODEL,
+            contents=req.texts,
+        )
+        embeddings = [e.values for e in result.embeddings]
+        return {"embeddings": embeddings}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/upload-pdf")
+async def upload_pdf(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File harus berformat PDF")
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Ukuran file maksimal 5 MB")
+    reader = pypdf.PdfReader(io.BytesIO(content))
+    raw = ""
+    for page in reader.pages:
+        text = page.extract_text()
+        if text:
+            raw += text + "\n\n"
+    if not raw.strip():
+        raise HTTPException(status_code=400, detail="Tidak ada teks yang bisa dibaca dari PDF ini")
+    chunks = chunk_text(raw)
+    return {"chunks": chunks, "name": file.filename, "pages": len(reader.pages), "total_chars": len(raw)}
 
 
 class ChatRequest(BaseModel):
